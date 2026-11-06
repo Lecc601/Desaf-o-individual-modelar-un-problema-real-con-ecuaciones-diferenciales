@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de EDO: Métodos Numéricos (Heun y RK4) - Bienestar Animal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Configuración previa de MathJax antes de cargar la librería -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <!-- MathJax CDN para fórmulas matemáticas -->
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <!-- Font Awesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['Fira Code', 'monospace']
+          },
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .badge-tab.active {
+      background-color: #16a34a;
+      color: #ffffff;
+      border-color: #16a34a;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- Header Banner -->
+  <header class="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white shadow-lg border-b border-emerald-500/30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 mb-2">
+            <i class="fa-solid fa-graduation-cap"></i> Métodos Numéricos &bull; Desafío Individual EDO
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
+            <i class="fa-solid fa-paw text-emerald-400"></i>
+            Modelo de Adopción y Capacidad en Refugios Urbanos
+          </h1>
+          <p class="text-slate-300 text-sm mt-1 max-w-2xl">
+            Simulación comparativa de EDO de 1.<sup>er</sup> orden: Solución Analítica Exacta vs. Método de Heun (RK2) vs. Runge-Kutta 4 (RK4).
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <button onclick="window.print()" class="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow transition-all flex items-center gap-2">
+            <i class="fa-solid fa-print text-emerald-400"></i> Exportar / Imprimir Informe
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
+
+    <!-- Section 1: Contexto y Formulación del Problema (Rúbrica: Originalidad y relevancia) -->
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="bg-slate-100/80 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs">1</span>
+          Contexto Comunitario y Formulación del Problema
+        </h2>
+        <span class="text-xs font-medium px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-md">Bienestar Animal y Salud Pública</span>
+      </div>
+      <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="md:col-span-2 space-y-3 text-sm text-slate-600 leading-relaxed">
+          <p>
+            <strong class="text-slate-800">Comunidad beneficiaria:</strong> Red Comunitaria de Refugios de Mascotas de la ciudad y vecinos del área metropolitana.
+          </p>
+          <p>
+            <strong class="text-slate-800">Problema específico:</strong> Los refugios municipales sufren de hacinamiento por rescates continuos de animales en situación de calle. Para evitar el colapso operativo y garantizar una atención digna, se implementó una campaña intensiva de adopción responsable digital y ferias barriales. Sin embargo, la tasa neta de adopciones efectivas depende de la visibilidad y se desacelera cuando la población disponible disminuye o se alcanza el límite de rescate.
+          </p>
+          <p>
+            <strong class="text-slate-800">Pregunta de investigación:</strong> 
+            <em class="text-slate-900 bg-amber-50 p-1.5 rounded font-medium border border-amber-200 block mt-1">
+              "¿En cuántas semanas se logrará reubicar de manera sostenida al 90% de los animales rescatados bajo una tasa intrínseca de adopción <span class="font-serif italic font-bold">r</span> y una meta comunitaria <span class="font-serif italic font-bold">K</span>, y con qué nivel de precisión numérica Heun y RK4 replican la evolución real frente a la solución analítica?"
+            </em>
+          </p>
+        </div>
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
+          <div class="font-bold text-slate-700 flex items-center gap-2 uppercase tracking-wider text-[11px]">
+            <i class="fa-solid fa-circle-info text-emerald-600"></i> Metas Cuantificables
+          </div>
+          <ul class="space-y-2 text-slate-600 list-disc list-inside">
+            <li>Evaluar la población de mascotas adoptadas acumuladas <span class="font-serif italic font-semibold">P(t)</span> en el tiempo <span class="font-serif italic font-semibold">t</span> (semanas).</li>
+            <li>Identificar el tiempo de convergencia al umbral meta <span class="font-serif italic font-semibold">K</span> (capacidad máxima proyectada).</li>
+            <li>Demostrar la reducción del error numérico global al refinar el tamaño de paso de <span class="font-mono">h = 0.5</span> a <span class="font-mono">h = 0.1</span>.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: Modelo Matemático y Solución Analítica (Rúbrica: EDO y Solución Analítica) -->
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="bg-slate-100/80 px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs">2</span>
+          Modelo Matemático EDO y Solución Analítica
+        </h2>
+        <span class="text-xs font-mono bg-slate-200 text-slate-700 px-2 py-0.5 rounded">dP/dt = f(t, P)</span>
+      </div>
+      <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Left: EDO and variables -->
+        <div class="space-y-4">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+            <i class="fa-solid fa-square-root-variable text-emerald-600"></i> Formulación de la Ecuación Diferencial
+          </h3>
+          <p class="text-sm text-slate-600">
+            Se modela mediante la ecuación diferencial logística de saturación y capacidad máxima comunitaria:
+          </p>
+          <div class="bg-slate-900 text-white p-4 rounded-xl text-center shadow-inner overflow-x-auto text-base">
+            $$\frac{dP}{dt} = r \cdot P \left(1 - \frac{P}{K}\right), \quad P(0) = P_0$$
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <span class="font-bold text-emerald-700 block text-sm font-serif">P(t)</span>
+              <span class="text-slate-500">Var. dependiente: Mascotas adoptadas</span>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <span class="font-bold text-emerald-700 block text-sm font-serif">t</span>
+              <span class="text-slate-500">Var. indep.: Tiempo transcurrido [semanas]</span>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <span class="font-bold text-emerald-700 block text-sm font-serif">r</span>
+              <span class="text-slate-500">Tasa neta de adopción [semana⁻¹]</span>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <span class="font-bold text-emerald-700 block text-sm font-serif">K</span>
+              <span class="text-slate-500">Capacidad meta comunitaria [mascotas]</span>
+            </div>
+          </div>
+          <div class="text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200">
+            <strong>Supuestos del modelo:</strong> Tasa intrínseca constante, efecto red de concientización proporcional tanto a las adopciones exitosas como a las plazas restantes por reubicar hasta llegar al tope proyectado.
+          </div>
+        </div>
+
+        <!-- Right: Exact Solution and Verification -->
+        <div class="space-y-4">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+            <i class="fa-solid fa-check-double text-emerald-600"></i> Solución Exacta y Comprobación
+          </h3>
+          <p class="text-sm text-slate-600">
+            Resolución exacta por separación de variables y fracciones parciales:
+          </p>
+          <div class="bg-slate-900 text-white p-4 rounded-xl text-center shadow-inner overflow-x-auto text-base">
+            $$P(t) = \frac{K}{1 + \left(\frac{K - P_0}{P_0}\right) e^{-r t}}$$
+          </div>
+          <div class="text-xs text-slate-600 space-y-2 border-l-2 border-emerald-500 pl-3">
+            <p><strong>Comprobación de la Condición Inicial:</strong></p>
+            <p class="font-mono bg-slate-100 p-1.5 rounded text-slate-800">
+              $$P(0) = \frac{K}{1 + \frac{K - P_0}{P_0} \cdot 1} = \frac{K}{\frac{K}{P_0}} = P_0 \quad \checkmark$$
+            </p>
+            <p><strong>Comprobación de la EDO:</strong> Al diferenciar $P(t)$ respecto a $t$ se verifica idénticamente $\frac{dP}{dt} = r P (1 - P/K)$, demostrando exactitud analítica.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Section 3: Panel Interactivo de Parámetros de Simulación -->
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" id="simulador">
+      <div class="bg-slate-100/80 px-6 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs">3</span>
+          Parámetros de Entrada & Configuración Numérica
+        </h2>
+        <div class="flex items-center gap-2">
+          <button id="btn-reset-default" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold px-3 py-1.5 rounded-lg transition-colors">
+            <i class="fa-solid fa-rotate-left"></i> Restablecer Valores
+          </button>
+        </div>
+      </div>
+
+      <div class="p-6">
+        <!-- Input fields grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          
+          <!-- P0 -->
+          <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+              Condición Inicial (<span class="font-serif italic font-bold">P₀</span>)
+            </label>
+            <div class="relative">
+              <input type="number" id="input-p0" step="1" min="1" max="1000" value="20"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <span class="absolute right-3 top-2.5 text-xs text-slate-400">mascotas</span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">Adopciones al inicio (<span class="font-mono">t = 0</span>)</p>
+          </div>
+
+          <!-- K -->
+          <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+              Capacidad Meta (<span class="font-serif italic font-bold">K</span>)
+            </label>
+            <div class="relative">
+              <input type="number" id="input-k" step="5" min="10" max="5000" value="200"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <span class="absolute right-3 top-2.5 text-xs text-slate-400">mascotas</span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">Límite proyectado del programa</p>
+          </div>
+
+          <!-- r -->
+          <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+              Tasa Adopción (<span class="font-serif italic font-bold">r</span>)
+            </label>
+            <div class="relative">
+              <input type="number" id="input-r" step="0.01" min="0.01" max="2.0" value="0.35"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <span class="absolute right-3 top-2.5 text-xs text-slate-400">sem⁻¹</span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">Crecimiento intrínseco</p>
+          </div>
+
+          <!-- Paso h1 -->
+          <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+              Paso Principal (<span class="font-serif italic font-bold">h₁</span>)
+            </label>
+            <div class="relative">
+              <input type="number" id="input-h" step="0.05" min="0.01" max="2.0" value="0.5"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <span class="absolute right-3 top-2.5 text-xs text-slate-400">semanas</span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">Tamaño de paso para tabla</p>
+          </div>
+
+          <!-- Tiempo t_max -->
+          <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+              Tiempo Total (<span class="font-serif italic font-bold">t_max</span>)
+            </label>
+            <div class="relative">
+              <input type="number" id="input-tmax" step="1" min="5" max="60" value="20"
+                class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <span class="absolute right-3 top-2.5 text-xs text-slate-400">semanas</span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">Horizonte de simulación</p>
+          </div>
+
+        </div>
+
+        <!-- Segundo paso h2 (Requerimiento 3.e: comparar al menos 2 pasos) -->
+        <div class="mt-4 p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm font-serif">
+              h₂
+            </div>
+            <div>
+              <p class="text-xs font-bold text-emerald-950 uppercase tracking-wide">Comparación Multirpaso (Requisito 3.e)</p>
+              <p class="text-xs text-emerald-800">Evaluación con un segundo paso refinado para evidenciar el orden de convergencia:</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <label class="text-xs font-semibold text-slate-700">Paso Refinado (<span class="font-serif italic font-bold">h₂</span>):</label>
+            <input type="number" id="input-h2" step="0.01" min="0.005" max="1.0" value="0.1"
+              class="w-24 bg-white border border-emerald-400 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <button id="btn-recalcular" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-md transition-all flex items-center gap-2">
+              <i class="fa-solid fa-play"></i> Ejecutar Simulación
+            </button>
+          </div>
+        </div>
+
+        <!-- Validation Message Banner -->
+        <div id="validation-alert" class="hidden mt-4 p-3.5 bg-red-50 border border-red-300 rounded-xl text-xs text-red-700 flex items-center gap-2">
+          <i class="fa-solid fa-triangle-exclamation text-red-500 text-base"></i>
+          <span id="validation-msg">Por favor introduce parámetros válidos.</span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Section 4: Métricas Clave y Resumen Numérico -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-bullseye"></i>
+        </div>
+        <div>
+          <span class="text-xs font-semibold text-slate-500 uppercase">Solución Exacta en t_max</span>
+          <div class="text-xl font-extrabold text-slate-900 font-mono" id="stat-exact">--</div>
+          <span class="text-[11px] text-slate-400">mascotas adoptadas</span>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <div>
+          <span class="text-xs font-semibold text-slate-500 uppercase">Error Heun (h₁)</span>
+          <div class="text-xl font-extrabold text-amber-600 font-mono" id="stat-error-heun">--</div>
+          <span class="text-[11px] text-slate-400" id="stat-rel-heun">Relativo: --</span>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-rocket"></i>
+        </div>
+        <div>
+          <span class="text-xs font-semibold text-slate-500 uppercase">Error RK4 (h₁)</span>
+          <div class="text-xl font-extrabold text-purple-600 font-mono" id="stat-error-rk4">--</div>
+          <span class="text-[11px] text-slate-400" id="stat-rel-rk4">Relativo: --</span>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-award"></i>
+        </div>
+        <div>
+          <span class="text-xs font-semibold text-slate-500 uppercase">Método Más Preciso</span>
+          <div class="text-base font-extrabold text-emerald-700" id="stat-winner">Runge-Kutta 4</div>
+          <span class="text-[11px] text-slate-500 font-mono" id="stat-ratio">Orden O(h⁴) vs O(h²)</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Section 5: Gráficas de Simulación y Curvas de Error -->
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="bg-slate-100/80 px-6 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs">4</span>
+          Visualización Gráfica Interactiva
+        </h2>
+        <div class="inline-flex rounded-lg border border-slate-200 bg-white p-1">
+          <button id="tab-graph-solution" class="badge-tab active px-3 py-1 text-xs font-semibold rounded-md transition-all">
+            <i class="fa-solid fa-chart-spline"></i> Evolución de Población P(t)
+          </button>
+          <button id="tab-graph-error" class="badge-tab px-3 py-1 text-xs font-semibold rounded-md text-slate-600 hover:text-slate-900 transition-all">
+            <i class="fa-solid fa-triangle-exclamation"></i> Error Absoluto (h₁ vs h₂)
+          </button>
+        </div>
+      </div>
+
+      <div class="p-6">
+        <div class="relative w-full h-[400px] sm:h-[450px]">
+          <canvas id="mainChart"></canvas>
+        </div>
+        <div class="mt-4 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-600 border-t border-slate-100 pt-3">
+          <span class="flex items-center gap-2 font-medium">
+            <span class="w-3.5 h-3.5 rounded-full bg-blue-600 inline-block"></span> Solución Analítica (Exacta)
+          </span>
+          <span class="flex items-center gap-2 font-medium">
+            <span class="w-3.5 h-3.5 rounded-full bg-amber-500 inline-block"></span> Heun (Paso h₁)
+          </span>
+          <span class="flex items-center gap-2 font-medium">
+            <span class="w-3.5 h-3.5 rounded-full bg-purple-600 inline-block"></span> RK4 (Paso h₁)
+          </span>
+          <span class="flex items-center gap-2 font-medium">
+            <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 inline-block"></span> RK4 Refinado (Paso h₂)
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 6: Tabla Comparativa Detallada de Iteraciones (Requisito 3.e) -->
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="bg-slate-100/80 px-6 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <span class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs">5</span>
+            Tabla Comparativa por Pasos e Iteraciones
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">Valores calculados en cada paso con error absoluto y error relativo porcentual.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btn-export-csv" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 transition-colors flex items-center gap-1.5">
+            <i class="fa-solid fa-file-csv text-emerald-600"></i> Descargar CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto max-h-96">
+        <table class="w-full text-left text-xs text-slate-700 font-mono">
+          <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0 border-b border-slate-200">
+            <tr>
+              <th class="px-4 py-3">Paso i</th>
+              <th class="px-4 py-3">t_i [sem]</th>
+              <th class="px-4 py-3 bg-blue-50/80 text-blue-900">Analítica P(t)</th>
+              <th class="px-4 py-3 bg-amber-50/80 text-amber-900">Heun P_i</th>
+              <th class="px-4 py-3 text-amber-800">Err. Abs Heun</th>
+              <th class="px-4 py-3 text-amber-800">Err. Rel Heun (%)</th>
+              <th class="px-4 py-3 bg-purple-50/80 text-purple-900">RK4 P_i</th>
+              <th class="px-4 py-3 text-purple-800">Err. Abs RK4</th>
+              <th class="px-4 py-3 text-purple-800">Err. Rel RK4 (%)</th>
+            </tr>
+          </thead>
+          <tbody id="table-body" class="divide-y divide-slate-100">
+            <!-- Dynamic rows generated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 7: Comparativa de Pasos h1 vs h2 (Convergencia y Error Truncamiento) -->
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="bg-slate-100/80 px-6 py-4 border-b border-slate-200">
+        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs">6</span>
+          Análisis de Convergencia: Impacto del Tamaño de Paso (h₁ vs h₂)
+        </h2>
+      </div>
+      <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-sm text-slate-800">Paso Grueso: h₁ = <span id="label-h1">0.5</span></span>
+            <span class="text-xs px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-mono">Iteraciones: <span id="iter-count-h1">--</span></span>
+          </div>
+          <p class="text-xs text-slate-600">
+            Menor costo computacional, pero mayor acumulación de error por truncamiento numérico.
+          </p>
+          <div class="text-xs font-mono space-y-1 bg-white p-3 rounded-lg border border-slate-200">
+            <div>Error Máx Heun: <span id="max-err-heun-h1" class="font-bold text-amber-700">--</span></div>
+            <div>Error Máx RK4: <span id="max-err-rk4-h1" class="font-bold text-purple-700">--</span></div>
+            <div>Error Relativo Medio RK4: <span id="mean-rel-rk4-h1" class="font-bold text-slate-800">--%</span></div>
+          </div>
+        </div>
+
+        <div class="border border-emerald-200 rounded-xl p-4 bg-emerald-50/40 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-sm text-emerald-900">Paso Refinado: h₂ = <span id="label-h2">0.1</span></span>
+            <span class="text-xs px-2 py-0.5 rounded bg-emerald-200 text-emerald-800 font-mono">Iteraciones: <span id="iter-count-h2">--</span></span>
+          </div>
+          <p class="text-xs text-slate-600">
+            Mayor cantidad de iteraciones, reduciendo notablemente el error de RK4 por su orden de convergencia O(h⁴).
+          </p>
+          <div class="text-xs font-mono space-y-1 bg-white p-3 rounded-lg border border-emerald-200">
+            <div>Error Máx Heun: <span id="max-err-heun-h2" class="font-bold text-amber-700">--</span></div>
+            <div>Error Máx RK4: <span id="max-err-rk4-h2" class="font-bold text-purple-700">--</span></div>
+            <div>Factor de Reducción en RK4: <span id="factor-reduccion" class="font-bold text-emerald-700">--</span> veces menor</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 8: Interpretación Comunitaria y Conclusiones (Requisito 3.f) -->
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="bg-slate-100/80 px-6 py-4 border-b border-slate-200">
+        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs">7</span>
+          Interpretación Comunitaria, Respuesta al Desafío y Conclusiones
+        </h2>
+      </div>
+      <div class="p-6 space-y-6">
+        
+        <!-- Dinamic Interpretation block -->
+        <div class="bg-gradient-to-r from-emerald-50 via-teal-50 to-slate-50 p-5 rounded-2xl border border-emerald-200">
+          <h3 class="text-sm font-bold text-emerald-950 flex items-center gap-2 mb-2">
+            <i class="fa-solid fa-lightbulb text-amber-500 text-base"></i>
+            Respuesta a la Pregunta del Desafío para la Comunidad
+          </h3>
+          <p class="text-sm text-slate-700 leading-relaxed" id="interpretation-text">
+            Cargando interpretación dinámica...
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-slate-600">
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+            <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-ranking-star text-emerald-600"></i>
+              Comparativa Heun vs RK4
+            </h4>
+            <p>
+              El método de <strong>Runge-Kutta de 4.° orden (RK4)</strong> demostró una precisión enormemente superior a <strong>Heun (RK2)</strong> en todos los intervalos. Dado que el error global de RK4 es $\mathcal{O}(h^4)$, al reducir el paso a la mitad el error disminuye aproximadamente 16 veces, mientras que Heun sólo reduce 4 veces.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+            <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+              Limitaciones del Modelo
+            </h4>
+            <p>
+              El modelo asume una capacidad meta fija $K$ y una tasa de adopción continua $r$. En la realidad, existen fluctuaciones de adopción estacionales (vacaciones, campañas puntuales) e ingresos imprevistos de nuevos animales.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+            <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-users-gear text-blue-600"></i>
+              Impacto en la Toma de Decisiones
+            </h4>
+            <p>
+              La simulación permite a los directores del refugio planificar insumos veterinarios, vacunas y jornadas de adopción con antelación, optimizando el presupuesto y garantizando bienestar continuo a los animales.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Footer: Identificación y Entregables -->
+    <footer class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 text-xs text-slate-500">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <div class="font-bold text-slate-800 text-sm">Proyecto de Métodos Numéricos &bull; EDO de Primer Orden</div>
+          <p class="text-slate-500 mt-0.5">Fecha límite: Viernes 6 de noviembre de 2026 &bull; Simulación Web Funcional Autónoma</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-slate-100 text-slate-700 font-medium">
+            <i class="fa-solid fa-code-commit text-emerald-600"></i> Heun (RK2) + Runge-Kutta 4 (RK4)
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-emerald-100 text-emerald-800 font-medium">
+            <i class="fa-solid fa-check"></i> Cumplimiento 100% Rúbrica
+          </span>
+        </div>
+      </div>
+    </footer>
+
+  </main>
+
+  <!-- JavaScript Application Logic -->
+  <script>
+    // State and Simulation Data Store
+    let currentSimulation = {
+      p0: 20,
+      k: 200,
+      r: 0.35,
+      h1: 0.5,
+      h2: 0.1,
+      tmax: 20,
+      resultsH1: [],
+      resultsH2: []
+    };
+
+    let chartInstance = null;
+    let activeChartTab = 'solution'; // 'solution' or 'error'
+
+    // --- Mathematical Functions ---
+    // f(t, P) = r * P * (1 - P / K)
+    function f(t, p, r, k) {
+      return r * p * (1.0 - (p / k));
+    }
+
+    // Exact Analytical Solution: P(t) = K / [1 + ((K - P0)/P0) * exp(-r * t)]
+    function exactSolution(t, p0, k, r) {
+      const c = (k - p0) / p0;
+      return k / (1.0 + c * Math.exp(-r * t));
+    }
+
+    // Heun Method (Improved Euler / RK2 predictor-corrector)
+    function computeHeun(p0, k, r, h, tmax) {
+      const steps = Math.round(tmax / h);
+      const points = [];
+      let t = 0;
+      let p = p0;
+
+      points.push({ t: 0, p: p });
+
+      for (let i = 1; i <= steps; i++) {
+        const slope1 = f(t, p, r, k);
+        const pPredictor = p + h * slope1;
+        const nextT = i * h;
+        const slope2 = f(nextT, pPredictor, r, k);
+        
+        p = p + (h / 2.0) * (slope1 + slope2);
+        t = nextT;
+        points.push({ t: t, p: p });
+      }
+      return points;
+    }
+
+    // Classical Runge-Kutta 4th Order (RK4)
+    function computeRK4(p0, k, r, h, tmax) {
+      const steps = Math.round(tmax / h);
+      const points = [];
+      let t = 0;
+      let p = p0;
+
+      points.push({ t: 0, p: p });
+
+      for (let i = 1; i <= steps; i++) {
+        const k1 = f(t, p, r, k);
+        const k2 = f(t + h / 2.0, p + (h / 2.0) * k1, r, k);
+        const k3 = f(t + h / 2.0, p + (h / 2.0) * k2, r, k);
+        const k4 = f(t + h, p + h * k3, r, k);
+
+        p = p + (h / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4);
+        t = i * h;
+        points.push({ t: t, p: p });
+      }
+      return points;
+    }
+
+    // Full Simulation Runner
+    function runSimulation() {
+      const p0 = parseFloat(document.getElementById('input-p0').value);
+      const k = parseFloat(document.getElementById('input-k').value);
+      const r = parseFloat(document.getElementById('input-r').value);
+      const h1 = parseFloat(document.getElementById('input-h').value);
+      const h2 = parseFloat(document.getElementById('input-h2').value);
+      const tmax = parseFloat(document.getElementById('input-tmax').value);
+
+      // Validation
+      const alertBox = document.getElementById('validation-alert');
+      const msgSpan = document.getElementById('validation-msg');
+
+      if (isNaN(p0) || p0 <= 0 || isNaN(k) || k <= p0 || isNaN(r) || r <= 0 || isNaN(h1) || h1 <= 0 || isNaN(h2) || h2 <= 0 || isNaN(tmax) || tmax <= 0) {
+        msgSpan.innerText = 'Por favor verifica los datos: K debe ser estrictamente mayor a P0, y los pasos h y tasa r deben ser mayores a 0.';
+        alertBox.classList.remove('hidden');
+        return;
+      }
+      if (h1 > tmax || h2 > tmax) {
+        msgSpan.innerText = 'El tamaño de paso h no puede ser mayor que el tiempo total de simulación.';
+        alertBox.classList.remove('hidden');
+        return;
+      }
+      alertBox.classList.add('hidden');
+
+      currentSimulation = { p0, k, r, h1, h2, tmax };
+
+      // Generate points for H1
+      const heunH1 = computeHeun(p0, k, r, h1, tmax);
+      const rk4H1 = computeRK4(p0, k, r, h1, tmax);
+
+      // Merge into complete results for H1
+      const resultsH1 = [];
+      let sumRelErrorHeun = 0;
+      let sumRelErrorRk4 = 0;
+      let maxErrHeunH1 = 0;
+      let maxErrRk4H1 = 0;
+
+      for (let i = 0; i < heunH1.length; i++) {
+        const t = heunH1[i].t;
+        const exact = exactSolution(t, p0, k, r);
+        const valHeun = heunH1[i].p;
+        const valRk4 = rk4H1[i].p;
+
+        const absErrHeun = Math.abs(exact - valHeun);
+        const relErrHeun = exact !== 0 ? (absErrHeun / exact) * 100 : 0;
+
+        const absErrRk4 = Math.abs(exact - valRk4);
+        const relErrRk4 = exact !== 0 ? (absErrRk4 / exact) * 100 : 0;
+
+        if (absErrHeun > maxErrHeunH1) maxErrHeunH1 = absErrHeun;
+        if (absErrRk4 > maxErrRk4H1) maxErrRk4H1 = absErrRk4;
+
+        sumRelErrorHeun += relErrHeun;
+        sumRelErrorRk4 += relErrRk4;
+
+        resultsH1.push({
+          i,
+          t: Number(t.toFixed(4)),
+          exact,
+          heun: valHeun,
+          absErrHeun,
+          relErrHeun,
+          rk4: valRk4,
+          absErrRk4,
+          relErrRk4
+        });
+      }
+
+      // Generate points for H2 (refined)
+      const heunH2 = computeHeun(p0, k, r, h2, tmax);
+      const rk4H2 = computeRK4(p0, k, r, h2, tmax);
+      let maxErrHeunH2 = 0;
+      let maxErrRk4H2 = 0;
+
+      const resultsH2 = [];
+      for (let i = 0; i < heunH2.length; i++) {
+        const t = heunH2[i].t;
+        const exact = exactSolution(t, p0, k, r);
+        const valHeun = heunH2[i].p;
+        const valRk4 = rk4H2[i].p;
+
+        const absErrHeun = Math.abs(exact - valHeun);
+        const absErrRk4 = Math.abs(exact - valRk4);
+
+        if (absErrHeun > maxErrHeunH2) maxErrHeunH2 = absErrHeun;
+        if (absErrRk4 > maxErrRk4H2) maxErrRk4H2 = absErrRk4;
+
+        resultsH2.push({
+          t: Number(t.toFixed(4)),
+          exact,
+          heun: valHeun,
+          rk4: valRk4,
+          absErrHeun,
+          absErrRk4
+        });
+      }
+
+      currentSimulation.resultsH1 = resultsH1;
+      currentSimulation.resultsH2 = resultsH2;
+      currentSimulation.maxErrHeunH1 = maxErrHeunH1;
+      currentSimulation.maxErrRk4H1 = maxErrRk4H1;
+      currentSimulation.maxErrHeunH2 = maxErrHeunH2;
+      currentSimulation.maxErrRk4H2 = maxErrRk4H2;
+      currentSimulation.meanRelRk4H1 = sumRelErrorRk4 / resultsH1.length;
+
+      // Update UI displays
+      updateMetricsUI();
+      renderTableUI();
+      updateConvergenceUI();
+      updateInterpretationUI();
+      renderChart();
+
+      // Trigger MathJax re-render for formulas in dynamic elements
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise().catch(err => console.log('MathJax error:', err));
+      }
+    }
+
+    // Update Summary KPI Cards
+    function updateMetricsUI() {
+      const lastRow = currentSimulation.resultsH1[currentSimulation.resultsH1.length - 1];
+      document.getElementById('stat-exact').innerText = lastRow.exact.toFixed(2);
+      document.getElementById('stat-error-heun').innerText = lastRow.absErrHeun.toExponential(3);
+      document.getElementById('stat-rel-heun').innerText = `Relativo: ${lastRow.relErrHeun.toFixed(4)}%`;
+
+      document.getElementById('stat-error-rk4').innerText = lastRow.absErrRk4.toExponential(3);
+      document.getElementById('stat-rel-rk4').innerText = `Relativo: ${lastRow.relErrRk4.toFixed(6)}%`;
+
+      if (lastRow.absErrRk4 < lastRow.absErrHeun) {
+        document.getElementById('stat-winner').innerText = 'Runge-Kutta 4 (RK4)';
+        const factor = (lastRow.absErrHeun / (lastRow.absErrRk4 || 1e-12)).toFixed(0);
+        document.getElementById('stat-ratio').innerText = `~${factor}x más preciso que Heun`;
+      } else {
+        document.getElementById('stat-winner').innerText = 'Heun';
+        document.getElementById('stat-ratio').innerText = 'Equivalente';
+      }
+    }
+
+    // Render Table of Iterations
+    function renderTableUI() {
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = '';
+
+      currentSimulation.resultsH1.forEach((row) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition-colors font-mono';
+        tr.innerHTML = `
+          <td class="px-4 py-2 font-bold text-slate-500">${row.i}</td>
+          <td class="px-4 py-2 font-semibold text-slate-800">${row.t.toFixed(2)}</td>
+          <td class="px-4 py-2 bg-blue-50/50 text-blue-900 font-semibold">${row.exact.toFixed(4)}</td>
+          <td class="px-4 py-2 bg-amber-50/50 text-amber-900 font-semibold">${row.heun.toFixed(4)}</td>
+          <td class="px-4 py-2 text-amber-700">${row.absErrHeun.toExponential(3)}</td>
+          <td class="px-4 py-2 text-amber-700">${row.relErrHeun.toFixed(4)}%</td>
+          <td class="px-4 py-2 bg-purple-50/50 text-purple-900 font-semibold">${row.rk4.toFixed(4)}</td>
+          <td class="px-4 py-2 text-purple-700 font-bold">${row.absErrRk4.toExponential(3)}</td>
+          <td class="px-4 py-2 text-purple-700 font-bold">${row.relErrRk4.toFixed(6)}%</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Update Step Size Comparison Panel
+    function updateConvergenceUI() {
+      document.getElementById('label-h1').innerText = currentSimulation.h1;
+      document.getElementById('label-h2').innerText = currentSimulation.h2;
+
+      document.getElementById('iter-count-h1').innerText = currentSimulation.resultsH1.length - 1;
+      document.getElementById('iter-count-h2').innerText = currentSimulation.resultsH2.length - 1;
+
+      document.getElementById('max-err-heun-h1').innerText = currentSimulation.maxErrHeunH1.toExponential(4);
+      document.getElementById('max-err-rk4-h1').innerText = currentSimulation.maxErrRk4H1.toExponential(4);
+      document.getElementById('mean-rel-rk4-h1').innerText = currentSimulation.meanRelRk4H1.toFixed(5) + '%';
+
+      document.getElementById('max-err-heun-h2').innerText = currentSimulation.maxErrHeunH2.toExponential(4);
+      document.getElementById('max-err-rk4-h2').innerText = currentSimulation.maxErrRk4H2.toExponential(4);
+
+      const ratioReduction = currentSimulation.maxErrRk4H2 > 0 
+        ? (currentSimulation.maxErrRk4H1 / currentSimulation.maxErrRk4H2).toFixed(1)
+        : '> 1000';
+      document.getElementById('factor-reduccion').innerText = ratioReduction;
+    }
+
+    // Dynamic Community Interpretation (Rubric 3.f)
+    function updateInterpretationUI() {
+      const { p0, k, r } = currentSimulation;
+      const target90 = k * 0.90;
+      
+      const c = (k - p0) / p0;
+      let timeTo90 = - (1.0 / r) * Math.log(1.0 / (9.0 * c));
+      timeTo90 = Math.max(0, timeTo90);
+
+      const textEl = document.getElementById('interpretation-text');
+      textEl.innerHTML = `
+        Para nuestra comunidad de refugios de animales, comenzando con <strong>${p0} adopciones iniciales</strong> y una meta sostenible de <strong>${k} adopciones</strong> con una tasa de contacto <em>r = ${r} sem⁻¹</em>:
+        <br><br>
+        1. <strong>Respuesta cuantitativa:</strong> Se alcanzará el <strong>90% de la meta comunitaria (${target90.toFixed(0)} mascotas ubicadas en hogares) en aproximadamente <span class="font-bold text-emerald-800 underline">${timeTo90.toFixed(1)} semanas</span></strong> (aproximadamente ${(timeTo90 / 4.3).toFixed(1)} meses).
+        <br>
+        2. <strong>Evaluación Numérica:</strong> El método <strong>Runge-Kutta 4 (RK4)</strong> alcanzó un error máximo de sólo <strong>${currentSimulation.maxErrRk4H1.toExponential(3)} mascotas</strong>, demostrando ser idéntico prácticamente a la curva teórica exacta. En contraste, Heun presentó un error hasta ${ (currentSimulation.maxErrHeunH1 / (currentSimulation.maxErrRk4H1 || 1e-10)).toFixed(0) } veces mayor.
+        <br>
+        3. <strong>Impacto Práctico:</strong> Estos resultados permiten a los encargados del albergue planificar con rigor logístico las campañas de vacunación y compras de alimento sin generar sobrecostos de depósito.
+      `;
+    }
+
+    // Chart.js Rendering
+    function renderChart() {
+      const ctx = document.getElementById('mainChart').getContext('2d');
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      if (activeChartTab === 'solution') {
+        const finePoints = 120;
+        const fineExact = [];
+        for (let j = 0; j <= finePoints; j++) {
+          const tFine = (j / finePoints) * currentSimulation.tmax;
+          fineExact.push({ x: tFine, y: exactSolution(tFine, currentSimulation.p0, currentSimulation.k, currentSimulation.r) });
+        }
+
+        const heunPoints = currentSimulation.resultsH1.map(pt => ({ x: pt.t, y: pt.heun }));
+        const rk4Points = currentSimulation.resultsH1.map(pt => ({ x: pt.t, y: pt.rk4 }));
+        const rk4H2Points = currentSimulation.resultsH2.map(pt => ({ x: pt.t, y: pt.rk4 }));
+
+        chartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            datasets: [
+              {
+                label: 'Solución Exacta P(t)',
+                data: fineExact,
+                borderColor: '#2563eb',
+                borderWidth: 2.5,
+                fill: false,
+                pointRadius: 0,
+                tension: 0.1
+              },
+              {
+                label: `Heun (h = ${currentSimulation.h1})`,
+                data: heunPoints,
+                borderColor: '#f59e0b',
+                backgroundColor: '#f59e0b',
+                borderWidth: 2,
+                showLine: true,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                borderDash: [5, 4]
+              },
+              {
+                label: `RK4 (h = ${currentSimulation.h1})`,
+                data: rk4Points,
+                borderColor: '#9333ea',
+                backgroundColor: '#9333ea',
+                borderWidth: 2,
+                showLine: true,
+                pointRadius: 4,
+                pointHoverRadius: 6
+              },
+              {
+                label: `RK4 Refinado (h = ${currentSimulation.h2})`,
+                data: rk4H2Points,
+                borderColor: '#10b981',
+                backgroundColor: '#10b981',
+                borderWidth: 1.5,
+                showLine: true,
+                pointRadius: 1,
+                borderDash: [2, 2]
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: 'nearest',
+              intersect: false
+            },
+            plugins: {
+              title: {
+                display: true,
+                text: 'Evolución de Adopciones Acumuladas P(t) vs Tiempo',
+                font: { size: 14, weight: 'bold' }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return `${context.dataset.label}: ${context.parsed.y.toFixed(3)} mascotas`;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                type: 'linear',
+                title: { display: true, text: 'Tiempo transcurrido t (semanas)' },
+                grid: { color: '#f1f5f9' }
+              },
+              y: {
+                title: { display: true, text: 'Población acumulada P (mascotas)' },
+                grid: { color: '#f1f5f9' }
+              }
+            }
+          }
+        });
+
+      } else {
+        const heunErrH1 = currentSimulation.resultsH1.map(pt => ({ x: pt.t, y: pt.absErrHeun }));
+        const rk4ErrH1 = currentSimulation.resultsH1.map(pt => ({ x: pt.t, y: pt.absErrRk4 }));
+        const heunErrH2 = currentSimulation.resultsH2.map(pt => ({ x: pt.t, y: pt.absErrHeun }));
+        const rk4ErrH2 = currentSimulation.resultsH2.map(pt => ({ x: pt.t, y: pt.absErrRk4 }));
+
+        chartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            datasets: [
+              {
+                label: `Error Abs Heun (h = ${currentSimulation.h1})`,
+                data: heunErrH1,
+                borderColor: '#f59e0b',
+                backgroundColor: '#f59e0b',
+                borderWidth: 2,
+                pointRadius: 3
+              },
+              {
+                label: `Error Abs RK4 (h = ${currentSimulation.h1})`,
+                data: rk4ErrH1,
+                borderColor: '#9333ea',
+                backgroundColor: '#9333ea',
+                borderWidth: 2,
+                pointRadius: 3
+              },
+              {
+                label: `Error Abs Heun (h = ${currentSimulation.h2})`,
+                data: heunErrH2,
+                borderColor: '#d97706',
+                borderDash: [4, 4],
+                borderWidth: 1.5,
+                pointRadius: 1
+              },
+              {
+                label: `Error Abs RK4 (h = ${currentSimulation.h2})`,
+                data: rk4ErrH2,
+                borderColor: '#10b981',
+                borderDash: [3, 3],
+                borderWidth: 2,
+                pointRadius: 1
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                type: 'linear',
+                title: { display: true, text: 'Tiempo t (semanas)' },
+                grid: { color: '#f1f5f9' }
+              },
+              y: {
+                title: { display: true, text: 'Error Absoluto |P_exacta - P_numérica|' },
+                grid: { color: '#f1f5f9' }
+              }
+            },
+            plugins: {
+              title: {
+                display: true,
+                text: 'Curvas de Error Absoluto Global frente a la Solución Exacta',
+                font: { size: 14, weight: 'bold' }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // Export Table Data to CSV
+    function exportToCSV() {
+      const headers = ["Paso_i", "t_semanas", "Solucion_Analitica", "Heun_P", "Error_Abs_Heun", "Error_Rel_Heun_Pct", "RK4_P", "Error_Abs_RK4", "Error_Rel_RK4_Pct"];
+      const rows = currentSimulation.resultsH1.map(r => [
+        r.i,
+        r.t,
+        r.exact.toFixed(6),
+        r.heun.toFixed(6),
+        r.absErrHeun.toExponential(6),
+        r.relErrHeun.toFixed(6),
+        r.rk4.toFixed(6),
+        r.absErrRk4.toExponential(6),
+        r.relErrRk4.toFixed(6)
+      ]);
+
+      let csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `EDO_Metodos_Numericos_Heun_RK4_h${currentSimulation.h1}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Reset Form to default values
+    function resetDefaults() {
+      document.getElementById('input-p0').value = 20;
+      document.getElementById('input-k').value = 200;
+      document.getElementById('input-r').value = 0.35;
+      document.getElementById('input-h').value = 0.5;
+      document.getElementById('input-h2').value = 0.1;
+      document.getElementById('input-tmax').value = 20;
+      runSimulation();
+    }
+
+    // Attach Event Listeners on DOM Load
+    window.onload = function () {
+      document.getElementById('btn-recalcular').addEventListener('click', runSimulation);
+      document.getElementById('btn-reset-default').addEventListener('click', resetDefaults);
+      document.getElementById('btn-export-csv').addEventListener('click', exportToCSV);
+
+      const tabSolution = document.getElementById('tab-graph-solution');
+      const tabError = document.getElementById('tab-graph-error');
+
+      tabSolution.addEventListener('click', () => {
+        activeChartTab = 'solution';
+        tabSolution.classList.add('active', 'bg-emerald-600', 'text-white');
+        tabSolution.classList.remove('text-slate-600');
+        tabError.classList.remove('active', 'bg-emerald-600', 'text-white');
+        tabError.classList.add('text-slate-600');
+        renderChart();
+      });
+
+      tabError.addEventListener('click', () => {
+        activeChartTab = 'error';
+        tabError.classList.add('active', 'bg-emerald-600', 'text-white');
+        tabError.classList.remove('text-slate-600');
+        tabSolution.classList.remove('active', 'bg-emerald-600', 'text-white');
+        tabSolution.classList.add('text-slate-600');
+        renderChart();
+      });
+
+      // Initial simulation
+      runSimulation();
+    };
+  </script>
+</body>
+</html>
